@@ -1,0 +1,136 @@
+services:
+  app_3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: SugarMaster
+    restart: unless-stopped
+    working_dir: /var/www/SugarMaster
+    volumes:
+      - .:/var/www/SugarMaster
+      - ./storage:/var/www/SugarMaster/storage
+    user: "1000:1000"
+    networks:
+      - app-network-3
+
+  # ----------------------------------------
+  # 2. خدمة خادم الويب Nginx
+  # ----------------------------------------
+  nginx_3:
+    image: nginx:1.25-alpine
+    container_name: nginx_server_SugarMaster
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    volumes:
+      - .:/var/www/SugarMaster
+      - ./storage:/var/www/SugarMaster/storage
+      - ./default2.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app_3
+    networks:
+      - app-network-3
+
+  # ----------------------------------------
+  # 3. خدمة قاعدة البيانات MySQL
+  # ----------------------------------------
+  db_3:
+    image: mysql:8.0
+    container_name: mysql_db_SugarMaster
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: SugarMaster
+      MYSQL_ROOT_PASSWORD: root_3
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - app-network-3
+
+  # queue:
+  #   build:
+  #     context: ./docker/php
+  #     dockerfile: Dockerfile
+  #   container_name: laravel_queue_2
+  #   working_dir: /var/www/backend
+  #   command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+  #   volumes:
+  #     - ./backend:/var/www/backend
+  #     - ./backend/storage:/var/www/backend/storage
+  #   depends_on:
+  #     - app_2
+  #     - db_2
+  #   restart: always
+  #   user: "1000:1000"
+  #   networks:
+  #     - app-network-2
+
+  # node_2:
+  #   image: node:20
+  #   container_name: vite_dev_server_myAcademy
+  #   working_dir: /var/www/frontend
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend:/var/www/frontend
+  #   user: "1000:1000"
+  #   command: npm run dev --host
+  #   restart: unless-stopped
+  #   networks:
+  #     - app-network-2
+
+  # ----------------------------------------
+  # 6. خدمة Redis (للكاش والجلسات)
+  # ----------------------------------------
+  # redis_2:
+  #   image: redis:6.2-alpine
+  #   container_name: redis_cache_myAcademy
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - app-network-2
+
+  # ----------------------------------------
+  # 7. خدمة phpMyAdmin (جديد)
+  # ----------------------------------------
+  # phpmyadmin_2:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: phpmyadmin_ui_myAcademy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:80"
+  #   environment:
+  #     PMA_HOST: db_2
+  #     MYSQL_ROOT_PASSWORD: root
+  #   depends_on:
+  #     - db_2
+  #   networks:
+  #     - app-network-2
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   container_name: ngrok_myAcademy
+  #   restart: unless-stopped
+  #   command:
+  #     - "start"
+  #     - "--all"
+  #     - "--config=/etc/ngrok/ngrok.yml"
+  #   volumes:
+  #     - ./docker/ngrok/ngrok.yml:/etc/ngrok/ngrok.yml
+  #   depends_on:
+  #     - nginx_2
+  #   networks:
+  #     - app-network-2
+# ========================================
+# الشبكات والمجلدات
+# ========================================
+networks:
+  app-network-3:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local
+  # redis-data:
+  #   driver: local
